@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useGistState } from './hooks/useGistState'
 import { useCycleCalc } from './hooks/useCycleCalc'
 import { Dashboard } from './components/organisms/Dashboard'
+import { InstallBanner } from './components/molecules/InstallBanner'
 import type { SyncStatus } from './hooks/useGistState'
 
 function SyncDot({ status }: { status: SyncStatus }) {
@@ -59,6 +60,7 @@ export default function App() {
         onThemeToggle={toggleTheme}
         isDark={isDark}
       />
+      <InstallBanner />
       <SyncDot status={syncStatus} />
     </>
   )
