@@ -12,7 +12,7 @@ type Props = {
   animationDelay?: number
 }
 
-function formatProjection(proj: ProjectionResult, cycleEnd: Date): string {
+function formatProjection(proj: ProjectionResult): string {
   if (!proj.available) return ''
   if (proj.exhaustsBeforeReset) {
     const hoursLeft = Math.round((proj.exhaustsAt - Date.now()) / 3_600_000)
@@ -115,7 +115,7 @@ export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, anima
             fontWeight: 500,
           }}
         >
-          {formatProjection(projection, cycleEnd)}
+          {formatProjection(projection)}
         </p>
       )}
 
