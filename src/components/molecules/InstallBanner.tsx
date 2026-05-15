@@ -41,65 +41,98 @@ export function InstallBanner() {
   return (
     <div style={{
       position: 'fixed',
-      bottom: '52px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: 'calc(100% - 32px)',
-      maxWidth: '520px',
+      bottom: 0,
+      left: 0,
+      right: 0,
       background: 'var(--color-surface-raised)',
-      border: '1px solid var(--color-border)',
-      borderRadius: 'var(--radius-modal)',
-      boxShadow: 'var(--shadow-modal)',
-      padding: '14px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
+      borderTop: '1px solid var(--color-border)',
+      boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
+      padding: '16px 20px 24px',
       zIndex: 50,
       animation: 'fadeSlideUp 250ms ease-out both',
     }}>
-      <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>📲</span>
-      <span style={{
-        flex: 1,
-        fontFamily: 'var(--font-body)',
-        fontSize: '0.825rem',
-        color: 'var(--color-text-secondary)',
-        lineHeight: 1.4,
+      {/* Linha 1: ícone + texto + fechar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        marginBottom: '14px',
       }}>
-        Instalar o Claude Pacer no dispositivo?
-      </span>
-      <button
-        onClick={handleInstall}
-        style={{
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-card)',
-          border: 'none',
-          background: 'var(--color-accent)',
-          color: '#fff',
+        <span style={{ fontSize: '1.4rem', flexShrink: 0, lineHeight: 1.2 }}>📲</span>
+        <p style={{
+          flex: 1,
+          margin: 0,
           fontFamily: 'var(--font-body)',
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        Instalar
-      </button>
-      <button
-        onClick={handleDismiss}
-        title="Dispensar"
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--color-text-muted)',
-          fontSize: '1.1rem',
-          lineHeight: 1,
-          padding: '4px',
-          flexShrink: 0,
-        }}
-      >
-        ✕
-      </button>
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'var(--color-text-primary)',
+          lineHeight: 1.4,
+        }}>
+          Instalar o Claude Pacer
+          <span style={{
+            display: 'block',
+            fontWeight: 400,
+            fontSize: '0.775rem',
+            color: 'var(--color-text-muted)',
+            marginTop: '2px',
+          }}>
+            Abre como app, sem barra do browser
+          </span>
+        </p>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dispensar"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--color-text-muted)',
+            fontSize: '1.1rem',
+            lineHeight: 1,
+            padding: '4px',
+            flexShrink: 0,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Linha 2: botões */}
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button
+          onClick={handleDismiss}
+          style={{
+            flex: 1,
+            padding: '11px',
+            borderRadius: 'var(--radius-card)',
+            border: '1.5px solid var(--color-border)',
+            background: 'transparent',
+            color: 'var(--color-text-secondary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+          }}
+        >
+          Agora não
+        </button>
+        <button
+          onClick={handleInstall}
+          style={{
+            flex: 2,
+            padding: '11px',
+            borderRadius: 'var(--radius-card)',
+            border: 'none',
+            background: 'var(--color-accent)',
+            color: '#fff',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Instalar
+        </button>
+      </div>
     </div>
   )
 }
