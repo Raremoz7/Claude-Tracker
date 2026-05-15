@@ -2,26 +2,26 @@ import { useState, useEffect, useCallback } from 'react'
 import { PercentInput } from '../atoms/PercentInput'
 
 type Props = {
-  onSubmit: (allModels: number, sonnetOnly: number) => void
+  onSubmit: (allModels: number) => void
   onClose: () => void
 }
 
 export function RegisterModal({ onSubmit, onClose }: Props) {
   const [allModels, setAllModels] = useState('')
-  const [sonnetOnly, setSonnetOnly] = useState('')
 
   const handleSubmit = () => {
     const a = Math.min(100, Math.max(0, Number(allModels) || 0))
-    const s = Math.min(100, Math.max(0, Number(sonnetOnly) || 0))
-    onSubmit(a, s)
+    onSubmit(a)
     onClose()
   }
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'Enter') handleSubmit()
     },
-    [onClose],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onClose, allModels],
   )
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function RegisterModal({ onSubmit, onClose }: Props) {
           borderRadius: 'var(--radius-modal)',
           padding: '28px',
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '360px',
           boxShadow: 'var(--shadow-modal)',
           display: 'flex',
           flexDirection: 'column',
@@ -72,12 +72,11 @@ export function RegisterModal({ onSubmit, onClose }: Props) {
             Registrar uso
           </h2>
           <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-body)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-            Digite exatamente o que aparece na tela do Claude.
+            Digite o % de "Todos os modelos" que aparece na tela do Claude.
           </p>
         </div>
 
         <PercentInput label="Todos os modelos" value={allModels} onChange={setAllModels} />
-        <PercentInput label="Somente Sonnet" value={sonnetOnly} onChange={setSonnetOnly} />
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button
@@ -109,7 +108,7 @@ export function RegisterModal({ onSubmit, onClose }: Props) {
               cursor: 'pointer',
             }}
           >
-            Salvar leitura
+            Salvar
           </button>
         </div>
       </div>

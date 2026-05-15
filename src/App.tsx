@@ -28,7 +28,10 @@ export default function App() {
         isDark={isDark}
       />
       {modalOpen && (
-        <RegisterModal onSubmit={addReading} onClose={() => setModalOpen(false)} />
+        <RegisterModal
+          onSubmit={allModels => addReading(allModels, 0)}
+          onClose={() => setModalOpen(false)}
+        />
       )}
     </>
   )

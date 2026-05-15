@@ -84,7 +84,7 @@ export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, anima
         }}
       >
         <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-          Teto agora
+          Teto de hoje
         </span>
         <span
           style={{

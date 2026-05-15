@@ -4,7 +4,7 @@ import {
   getCycleStart,
   getCycleEnd,
   getProgress,
-  getSafeCeiling,
+  getEndOfDayCeiling,
   getDayTargets,
   formatCountdown,
 } from '../lib/cycleCalc'
@@ -14,7 +14,7 @@ export type CycleCalcResult = {
   cycleStart: Date
   cycleEnd: Date
   progress: number
-  safeCeiling: number
+  safeCeiling: number   // teto do fim do dia corrente (usado para status e exibição)
   dayTargets: DayTarget[]
   timeUntilReset: string
   msUntilReset: number
@@ -31,7 +31,7 @@ export function useCycleCalc(cycle: CycleConfig): CycleCalcResult {
   const cycleStart = getCycleStart(now, cycle)
   const cycleEnd = getCycleEnd(cycleStart)
   const progress = getProgress(now, cycleStart, cycleEnd)
-  const safeCeiling = getSafeCeiling(progress)
+  const safeCeiling = getEndOfDayCeiling(now, cycleStart, cycleEnd)
   const dayTargets = getDayTargets(cycleStart, cycleEnd, now)
   const msUntilReset = Math.max(0, cycleEnd.getTime() - now.getTime())
   const timeUntilReset = formatCountdown(msUntilReset)

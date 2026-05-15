@@ -98,6 +98,13 @@ export function getDayTargets(cycleStart: Date, cycleEnd: Date, now: Date): DayT
   return targets
 }
 
+export function getEndOfDayCeiling(now: Date, cycleStart: Date, cycleEnd: Date): number {
+  const endOfToday = new Date(now)
+  endOfToday.setHours(23, 59, 59, 999)
+  const progress = getProgress(endOfToday, cycleStart, cycleEnd)
+  return getSafeCeiling(progress)
+}
+
 export type BottleneckResult =
   | { available: false }
   | {
