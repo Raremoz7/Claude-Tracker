@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect } from 'react'
 import type { AppState } from '../types'
 
 const GIST_FILENAME = 'claude-pacer-data.json'
-const CREDS_KEY = 'claude-pacer-creds'
 const CACHE_KEY = 'claude-pacer-state'
 
-export type Credentials = { token: string; gistId: string }
+const TOKEN  = import.meta.env.VITE_GITHUB_TOKEN
+const GIST_ID = import.meta.env.VITE_GIST_ID
 
 export const SEED_STATE: AppState = {
   limits: [
@@ -15,63 +15,34 @@ export const SEED_STATE: AppState = {
   cycle: { resetDayOfWeek: 3, resetHour: 17, resetMinute: 59 },
 }
 
-// ── Gist API helpers ────────────────────────────────────────────────────────
+// ── Gist API ────────────────────────────────────────────────────────────────
 
-async function fetchGist(creds: Credentials): Promise<AppState> {
-  const res = await fetch(`https://api.github.com/gists/${creds.gistId}`, {
-    headers: { Authorization: `Bearer ${creds.token}` },
+async function fetchGist(): Promise<AppState> {
+  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
   })
-  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
+  if (!res.ok) throw new Error(`GitHub ${res.status}`)
   const data = await res.json() as { files: Record<string, { content: string }> }
   const content = data.files[GIST_FILENAME]?.content
-  if (!content) throw new Error('Arquivo não encontrado no Gist')
+  if (!content) throw new Error('Arquivo não encontrado')
   return JSON.parse(content) as AppState
 }
 
-async function patchGist(creds: Credentials, state: AppState): Promise<void> {
-  const res = await fetch(`https://api.github.com/gists/${creds.gistId}`, {
+async function patchGist(state: AppState): Promise<void> {
+  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
     method: 'PATCH',
     headers: {
-      Authorization: `Bearer ${creds.token}`,
+      Authorization: `Bearer ${TOKEN}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       files: { [GIST_FILENAME]: { content: JSON.stringify(state) } },
     }),
   })
-  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
+  if (!res.ok) throw new Error(`GitHub ${res.status}`)
 }
 
-export async function createGist(token: string): Promise<string> {
-  const res = await fetch('https://api.github.com/gists', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      description: 'Claude Pacer — usage tracking data',
-      public: false,
-      files: { [GIST_FILENAME]: { content: JSON.stringify(SEED_STATE) } },
-    }),
-  })
-  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
-  const data = await res.json() as { id: string }
-  return data.id
-}
-
-// ── Local storage helpers ───────────────────────────────────────────────────
-
-export function loadCreds(): Credentials | null {
-  try {
-    const raw = localStorage.getItem(CREDS_KEY)
-    return raw ? (JSON.parse(raw) as Credentials) : null
-  } catch { return null }
-}
-
-export function saveCreds(creds: Credentials): void {
-  localStorage.setItem(CREDS_KEY, JSON.stringify(creds))
-}
+// ── Cache ───────────────────────────────────────────────────────────────────
 
 function loadCache(): AppState {
   try {
@@ -84,56 +55,42 @@ function saveCache(state: AppState): void {
   localStorage.setItem(CACHE_KEY, JSON.stringify(state))
 }
 
-// ── Hook ───────────────────────────────────────────────────────────────────
+// ── Hook ────────────────────────────────────────────────────────────────────
 
 export type SyncStatus = 'loading' | 'ready' | 'error' | 'saving'
 
-export function useGistState(creds: Credentials) {
+export function useGistState() {
   const [state, setState] = useState<AppState>(loadCache)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('loading')
 
-  // Fetch on mount
   useEffect(() => {
     setSyncStatus('loading')
-    fetchGist(creds)
-      .then(remote => {
-        setState(remote)
-        saveCache(remote)
-        setSyncStatus('ready')
-      })
-      .catch(() => {
-        // Fall back to cache silently
-        setSyncStatus('error')
-      })
-  }, [creds.gistId]) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchGist()
+      .then(remote => { setState(remote); saveCache(remote); setSyncStatus('ready') })
+      .catch(() => setSyncStatus('error'))
+  }, [])
 
-  const addReading = useCallback(
-    (allModelsPercent: number, _sonnetPercent: number) => {
-      const timestamp = Date.now()
-      setState(prev => {
-        const next: AppState = {
-          ...prev,
-          limits: prev.limits.map(limit => ({
-            ...limit,
-            readings: [
-              ...limit.readings,
-              {
-                timestamp,
-                percent: limit.id === 'all_models' ? allModelsPercent : _sonnetPercent,
-              },
-            ],
-          })),
-        }
-        saveCache(next)
-        setSyncStatus('saving')
-        patchGist(creds, next)
-          .then(() => setSyncStatus('ready'))
-          .catch(() => setSyncStatus('error'))
-        return next
-      })
-    },
-    [creds],
-  )
+  const addReading = useCallback((allModelsPercent: number) => {
+    const timestamp = Date.now()
+    setState(prev => {
+      const next: AppState = {
+        ...prev,
+        limits: prev.limits.map(limit => ({
+          ...limit,
+          readings: [
+            ...limit.readings,
+            { timestamp, percent: limit.id === 'all_models' ? allModelsPercent : 0 },
+          ],
+        })),
+      }
+      saveCache(next)
+      setSyncStatus('saving')
+      patchGist(next)
+        .then(() => setSyncStatus('ready'))
+        .catch(() => setSyncStatus('error'))
+      return next
+    })
+  }, [])
 
   return { state, addReading, syncStatus }
 }
