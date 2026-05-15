@@ -99,10 +99,28 @@ export function getDayTargets(cycleStart: Date, cycleEnd: Date, now: Date): DayT
 }
 
 export function getEndOfDayCeiling(now: Date, cycleStart: Date, cycleEnd: Date): number {
-  const endOfToday = new Date(now)
-  endOfToday.setHours(23, 59, 59, 999)
-  const progress = getProgress(endOfToday, cycleStart, cycleEnd)
-  return getSafeCeiling(progress)
+  // Use the same "today" matching logic as getDayTargets so both values agree.
+  // Each cycle-day starts at cycleStart + i*24h; we find the one whose calendar
+  // date matches today, then compute the ceiling at the END of that cycle-day.
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const cycleDuration = cycleEnd.getTime() - cycleStart.getTime()
+
+  for (let i = 0; i < 7; i++) {
+    const dayStart = new Date(cycleStart.getTime() + i * 24 * 60 * 60 * 1000)
+    const dayDate = new Date(dayStart)
+    dayDate.setHours(0, 0, 0, 0)
+    if (dayDate.getTime() === today.getTime()) {
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+      const elapsed = dayEnd.getTime() - cycleStart.getTime()
+      const progress = Math.min(1, elapsed / cycleDuration)
+      return getSafeCeiling(progress)
+    }
+  }
+
+  // Fallback: use end of last cycle day
+  const lastDayEnd = new Date(cycleEnd.getTime() - 1)
+  return getSafeCeiling(getProgress(lastDayEnd, cycleStart, cycleEnd))
 }
 
 export type BottleneckResult =
