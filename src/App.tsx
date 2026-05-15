@@ -2,15 +2,13 @@ import { useState } from 'react'
 import { useAppState } from './hooks/useAppState'
 import { useCycleCalc } from './hooks/useCycleCalc'
 import { Dashboard } from './components/organisms/Dashboard'
-import { RegisterModal } from './components/molecules/RegisterModal'
 
 export default function App() {
   const { state, addReading } = useAppState()
   const calc = useCycleCalc(state.cycle)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [isDark, setIsDark] = useState(() => {
-    return document.documentElement.getAttribute('data-theme') === 'dark'
-  })
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.getAttribute('data-theme') === 'dark'
+  )
 
   const toggleTheme = () => {
     const next = !isDark
@@ -19,20 +17,12 @@ export default function App() {
   }
 
   return (
-    <>
-      <Dashboard
-        state={state}
-        calc={calc}
-        onRegister={() => setModalOpen(true)}
-        onThemeToggle={toggleTheme}
-        isDark={isDark}
-      />
-      {modalOpen && (
-        <RegisterModal
-          onSubmit={allModels => addReading(allModels, 0)}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-    </>
+    <Dashboard
+      state={state}
+      calc={calc}
+      onSave={percent => addReading(percent, 0)}
+      onThemeToggle={toggleTheme}
+      isDark={isDark}
+    />
   )
 }

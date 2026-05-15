@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import type { Limit, Status, ProjectionResult } from '../../types'
 import { GaugeArc } from '../atoms/GaugeArc'
 import { StatusBadge } from '../atoms/StatusBadge'
@@ -9,7 +10,15 @@ type Props = {
   cycleStart: Date
   cycleEnd: Date
   now: Date
+  onSave: (percent: number) => void
   animationDelay?: number
+}
+
+const STATUS_COLORS: Record<Status, string> = {
+  ok: 'var(--color-ok)',
+  warning: 'var(--color-warning)',
+  critical: 'var(--color-critical)',
+  empty: 'var(--color-text-muted)',
 }
 
 function formatProjection(proj: ProjectionResult): string {
@@ -27,7 +36,7 @@ function formatStaleness(readingTimestamp: number, now: Date): string {
   return `há ${Math.round(diffH)}h`
 }
 
-export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, animationDelay = 0 }: Props) {
+export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, onSave, animationDelay = 0 }: Props) {
   const latestReading = getLatestCycleReading(limit.readings, cycleStart)
   const currentPercent = latestReading?.percent ?? 0
   const status: Status = latestReading ? getStatus(currentPercent, safeCeiling) : 'empty'
@@ -35,6 +44,30 @@ export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, anima
   const isStale = latestReading
     ? (now.getTime() - latestReading.timestamp) > 4 * 3_600_000
     : false
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.select()
+  }, [isEditing])
+
+  const startEdit = () => {
+    setEditValue(latestReading ? String(currentPercent) : '')
+    setIsEditing(true)
+  }
+
+  const commit = () => {
+    const val = Math.min(100, Math.max(0, Number(editValue) || 0))
+    onSave(val)
+    setIsEditing(false)
+  }
+
+  const cancel = () => setIsEditing(false)
+
+  const color = STATUS_COLORS[status]
+  const GAUGE_SIZE = 160
 
   return (
     <div
@@ -51,95 +84,134 @@ export function LimitCard({ limit, safeCeiling, cycleStart, cycleEnd, now, anima
         gap: '12px',
       }}
     >
+      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-            fontWeight: 500,
-            color: 'var(--color-text-secondary)',
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}
-        >
+        <span style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.8rem',
+          fontWeight: 500,
+          color: 'var(--color-text-secondary)',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}>
           {limit.label}
         </span>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {isStale && <StatusBadge status={status} staleness />}
-          <StatusBadge status={status} />
+          {latestReading && <StatusBadge status={status} />}
         </div>
       </div>
 
-      <GaugeArc percent={currentPercent} status={status} size={160} />
-
+      {/* Gauge + inline edit overlay */}
       <div
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '8px 12px',
-          background: 'var(--color-surface)',
-          borderRadius: 'var(--radius-card)',
-        }}
+        style={{ position: 'relative', width: GAUGE_SIZE, height: GAUGE_SIZE, cursor: 'text' }}
+        onClick={() => { if (!isEditing) startEdit() }}
+        title="Clique para registrar uso"
       >
+        <GaugeArc percent={currentPercent} status={status} size={GAUGE_SIZE} />
+
+        {/* Center content */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '2px',
+        }}>
+          {isEditing ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }} onClick={e => e.stopPropagation()}>
+              <input
+                ref={inputRef}
+                type="number"
+                min={0}
+                max={100}
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); commit() }
+                  if (e.key === 'Escape') cancel()
+                }}
+                onBlur={commit}
+                style={{
+                  width: '72px',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                  color,
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${color}`,
+                  outline: 'none',
+                  textAlign: 'center',
+                  padding: '0 2px',
+                  lineHeight: 1,
+                  MozAppearance: 'textfield',
+                }}
+              />
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 700, color }}>%</span>
+            </div>
+          ) : (
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '2.25rem',
+              fontWeight: 700,
+              color,
+              lineHeight: 1,
+              transition: 'color 300ms ease-out',
+            }}>
+              {status === 'empty' ? '—' : `${Math.round(currentPercent)}%`}
+            </span>
+          )}
+          <span style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.65rem',
+            color: isEditing ? color : 'var(--color-text-muted)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
+            {isEditing ? 'Enter para salvar' : status === 'empty' ? 'clique para digitar' : 'usado'}
+          </span>
+        </div>
+      </div>
+
+      {/* Teto de hoje */}
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 12px',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-card)',
+      }}>
         <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
           Teto de hoje
         </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: 'var(--color-text-primary)',
-          }}
-        >
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
           {Math.round(safeCeiling)}%
         </span>
       </div>
 
-      {!latestReading && (
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0, textAlign: 'center' }}>
-          Registre seu uso para ver o status
-        </p>
-      )}
-
+      {/* Projection */}
       {latestReading && projection.available && (
-        <p
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-            color: projection.exhaustsBeforeReset ? 'var(--color-critical)' : 'var(--color-ok)',
-            margin: 0,
-            textAlign: 'center',
-            fontWeight: 500,
-          }}
-        >
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.8rem',
+          color: projection.exhaustsBeforeReset ? 'var(--color-critical)' : 'var(--color-ok)',
+          margin: 0,
+          textAlign: 'center',
+          fontWeight: 500,
+        }}>
           {formatProjection(projection)}
         </p>
       )}
 
+      {/* Staleness nudge */}
       {latestReading && isStale && (
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>
-          Última leitura {formatStaleness(latestReading.timestamp, now)} — atualizar?
-        </p>
-      )}
-
-      {limit.id === 'sonnet_only' && (
-        <p
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.72rem',
-            color: 'var(--color-text-muted)',
-            margin: 0,
-            textAlign: 'center',
-            lineHeight: 1.5,
-            borderTop: '1px solid var(--color-border)',
-            paddingTop: '10px',
-            width: '100%',
-          }}
-        >
-          Consome junto com "Todos os modelos". Quando "Todos os modelos" zera, Sonnet também para.
+          Última leitura {formatStaleness(latestReading.timestamp, now)} — clique para atualizar
         </p>
       )}
     </div>
